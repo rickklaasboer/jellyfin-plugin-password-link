@@ -8,6 +8,14 @@
     "category": "Administration",
     "versions": [
       {
+        "version": "1.1.0.0",
+        "changelog": "https://github.com/rickklaasboer/jellyfin-plugin-password-link/releases/tag/v1.1.0.0",
+        "targetAbi": "12.1.0.0",
+        "sourceUrl": "https://github.com/rickklaasboer/jellyfin-plugin-password-link/releases/download/v1.1.0.0/password-link_1.1.0.0.zip",
+        "checksum": "bc5d4e9347bba3a87878c1ee6f512ae1",
+        "timestamp": "2026-11-25T21:48:45Z"
+      },
+      {
         "version": "1.0.0.0",
         "changelog": "https://github.com/rickklaasboer/jellyfin-plugin-password-link/releases/tag/v1.0.0.0",
         "targetAbi": "12.1.0.0",
