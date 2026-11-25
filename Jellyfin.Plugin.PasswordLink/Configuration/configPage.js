@@ -3,8 +3,8 @@ const DEFAULT_AUTH_PROVIDER = 'Jellyfin.Server.Implementations.Users.DefaultAuth
 
 const ERRORS = {
     UserNotFound: 'This user no longer exists.',
-    UserIsAdministrator: 'Links cannot be created for administrators.',
-    UserIsDisabled: 'This user is disabled. Enable the account first.',
+    UserIsAdministrator: "Administrators can't get a link.",
+    UserIsDisabled: 'Enable this user first.',
     UnsupportedAuthenticationProvider: 'This user signs in through another provider.',
     InvalidExpiry: 'Choose a validity between 1 and 365 days.',
 };
@@ -49,7 +49,7 @@ async function loadLinks(root) {
     const links = await api('GET', 'PasswordLink/Links');
     const rows = links.map((link) => {
         const row = document.createElement('tr');
-        for (const value of [link.Username, dateFormat.format(new Date(link.CreatedAt)), dateFormat.format(new Date(link.ExpiresAt))]) {
+        for (const value of [link.Username, dateFormat.format(new Date(link.ExpiresAt))]) {
             row.insertCell().textContent = value;
         }
 
