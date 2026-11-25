@@ -52,14 +52,55 @@ public sealed class PasswordLinkService : IDisposable
 
     public async Task<CreatedPasswordLink> CreateAsync(Guid userId, int? expiresInDays)
     {
-        var days = expiresInDays ?? _getConfiguration().DefaultExpiryDays;
-        if (days < 1 || days > MaxExpiryDays) throw new PasswordLinkException(PasswordLinkError.InvalidExpiry);
-
+        var days = ResolveExpiryDays(expiresInDays);
         var user = _userManager.GetUserById(userId)
             ?? throw new PasswordLinkException(PasswordLinkError.UserNotFound);
         EnsureEligible(user);
 
-        var token = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(TokenBytes));
+        return await IssueLinkAsync(user, days).ConfigureAwait(false);
+    }
+
+    public async Task<CreatedPasswordLink> CreateForNewUserAsync(string username, int? expiresInDays)
+    {
+        // Validate before creating anything, so a bad request never leaves a user behind.
+        var days = ResolveExpiryDays(expiresInDays);
+        var name = username.Trim();
+        if (_userManager.GetUserByName(name) is not null)
+        {
+            throw new PasswordLinkException(PasswordLinkError.UserAlreadyExists);
+        }
+
+        User user;
+        try
+        {
+            user = await _userManager.CreateUserAsync(name).ConfigureAwait(false);
+        }
+        catch (ArgumentException e)
+        {
+            _logger.LogWarning(e, "Could not create user {Username}", name);
+            throw new PasswordLinkException(PasswordLinkError.InvalidUsername);
+        }
+
+        // A new Jellyfin user has no password, so anyone who knows the name could sign in
+        // until the link is used. Give it a random password nobody ever sees.
+        try
+        {
+            await _userManager.ChangePassword(user.Id, NewSecret()).ConfigureAwait(false);
+        }
+        catch
+        {
+            await _userManager.DeleteUserAsync(user.Id).ConfigureAwait(false);
+            throw;
+        }
+
+        _logger.LogInformation("Created user {Username} for a password link", user.Username);
+
+        return await IssueLinkAsync(user, days).ConfigureAwait(false);
+    }
+
+    private async Task<CreatedPasswordLink> IssueLinkAsync(User user, int days)
+    {
+        var token = NewSecret();
         var now = _time.GetUtcNow();
         var record = new PasswordLinkRecord(Guid.NewGuid(), user.Id, HashToken(token), now, now.AddDays(days));
 
@@ -171,6 +212,16 @@ public sealed class PasswordLinkService : IDisposable
 
     internal static string HashToken(string token) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+
+    private static string NewSecret() => Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(TokenBytes));
+
+    private int ResolveExpiryDays(int? expiresInDays)
+    {
+        var days = expiresInDays ?? _getConfiguration().DefaultExpiryDays;
+        if (days < 1 || days > MaxExpiryDays) throw new PasswordLinkException(PasswordLinkError.InvalidExpiry);
+
+        return days;
+    }
 
     private static void EnsureEligible(User user)
     {

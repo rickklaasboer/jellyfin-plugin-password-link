@@ -34,9 +34,16 @@ public class PasswordLinkController : ControllerBase
     [Authorize(Policy = Policies.RequiresElevation)]
     public async Task<ActionResult<CreatedPasswordLink>> CreateLink([FromBody] CreateLinkRequest request)
     {
+        var username = string.IsNullOrWhiteSpace(request.Username) ? null : request.Username;
+
         try
         {
-            return Ok(await _service.CreateAsync(request.UserId, request.ExpiresInDays).ConfigureAwait(false));
+            return (request.UserId, username) switch
+            {
+                ({ } userId, null) => Ok(await _service.CreateAsync(userId, request.ExpiresInDays).ConfigureAwait(false)),
+                (null, { } name) => Ok(await _service.CreateForNewUserAsync(name, request.ExpiresInDays).ConfigureAwait(false)),
+                _ => BadRequest(new ErrorResponse("UserIdOrUsernameRequired")),
+            };
         }
         catch (PasswordLinkException e) when (e.Error == PasswordLinkError.UserNotFound)
         {

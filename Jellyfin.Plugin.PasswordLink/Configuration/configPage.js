@@ -3,6 +3,8 @@ const DEFAULT_AUTH_PROVIDER = 'Jellyfin.Server.Implementations.Users.DefaultAuth
 
 const ERRORS = {
     UserNotFound: 'This user no longer exists.',
+    UserAlreadyExists: 'This user already exists.',
+    InvalidUsername: 'This username is not allowed.',
     UserIsAdministrator: "Administrators can't get a link.",
     UserIsDisabled: 'Enable this user first.',
     UnsupportedAuthenticationProvider: 'This user signs in through another provider.',
@@ -39,10 +41,27 @@ function isEligible(user) {
         && user.Policy.AuthenticationProviderId === DEFAULT_AUTH_PROVIDER;
 }
 
+// Lowercased name to user id for every user, so a typed name that matches an existing account
+// links that account (and gets a clear error if it is not eligible) instead of creating a duplicate.
+let userIdsByName = new Map();
+
+function findUserId(name) {
+    return userIdsByName.get(name.trim().toLowerCase());
+}
+
 async function loadUsers(root) {
-    const users = (await window.ApiClient.getUsers()).filter(isEligible);
-    const select = root.querySelector('#pl-user');
-    select.replaceChildren(...users.map((user) => new Option(user.Name, user.Id)));
+    const users = await window.ApiClient.getUsers();
+    userIdsByName = new Map(users.map((user) => [user.Name.toLowerCase(), user.Id]));
+
+    const options = users.filter(isEligible).map((user) => new Option(user.Name));
+    root.querySelector('#pl-user-options').replaceChildren(...options);
+    updateCreateLabel(root);
+}
+
+function updateCreateLabel(root) {
+    const name = root.querySelector('#pl-user').value;
+    const isNew = name.trim() !== '' && findUserId(name) === undefined;
+    root.querySelector('#pl-create').textContent = isNew ? 'Create user and link' : 'Create link';
 }
 
 async function loadLinks(root) {
@@ -78,20 +97,21 @@ async function loadConfiguration(root) {
 }
 
 async function createLink(root) {
-    const select = root.querySelector('#pl-user');
+    const name = root.querySelector('#pl-user').value.trim();
+    const userId = findUserId(name);
     const link = await api('POST', 'PasswordLink/Links', {
-        UserId: select.value,
+        ...(userId === undefined ? {Username: name} : {UserId: userId}),
         ExpiresInDays: Number(root.querySelector('#pl-days').value),
     });
 
     // The token goes in the fragment, so it is not part of any request URL or proxy access log.
     root.querySelector('#pl-url').value = `${serverAddress()}/PasswordLink/Set#${link.Token}`;
-    root.querySelector('#pl-result-label').textContent = `Link for ${select.selectedOptions[0].text}`;
+    root.querySelector('#pl-result-label').textContent = `Link for ${name}`;
     root.querySelector('#pl-result-expiry').textContent = `Valid until ${dateFormat.format(new Date(link.ExpiresAt))}.`;
     root.querySelector('#pl-copy').textContent = 'Copy';
     root.querySelector('#pl-result').hidden = false;
 
-    await loadLinks(root);
+    await Promise.all([loadLinks(root), loadUsers(root)]);
 }
 
 async function saveConfiguration(root) {
@@ -117,6 +137,8 @@ async function run(action) {
 
 function bind(root) {
     root.dataset.bound = 'true';
+
+    root.querySelector('#pl-user').addEventListener('input', () => updateCreateLabel(root));
 
     root.querySelector('#pl-create-form').addEventListener('submit', (event) => {
         event.preventDefault();

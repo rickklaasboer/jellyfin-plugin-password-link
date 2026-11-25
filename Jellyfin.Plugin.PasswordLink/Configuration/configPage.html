@@ -8,14 +8,15 @@
                 <div class="pl-row">
                     <label class="pl-field">
                         <span>User</span>
-                        <select id="pl-user" class="emby-select-withcolor emby-select" required></select>
+                        <input id="pl-user" class="emby-input" type="text" list="pl-user-options" autocomplete="off" required>
+                        <datalist id="pl-user-options"></datalist>
                     </label>
                     <label class="pl-field pl-days">
                         <span>Valid for (days)</span>
                         <input id="pl-days" class="emby-input" type="number" min="1" max="365" required>
                     </label>
                 </div>
-                <button type="submit" class="raised button-submit emby-button pl-button">Create link</button>
+                <button type="submit" id="pl-create" class="raised button-submit emby-button pl-button">Create link</button>
 
                 <div id="pl-result" class="pl-result" hidden>
                     <label class="pl-field">

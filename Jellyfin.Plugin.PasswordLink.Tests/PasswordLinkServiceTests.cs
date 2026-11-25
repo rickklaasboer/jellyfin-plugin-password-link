@@ -150,6 +150,63 @@ public sealed class PasswordLinkServiceTests : IDisposable
         Assert.Equal(PasswordLinkError.UnsupportedAuthenticationProvider, e.Error);
     }
 
+    [Fact]
+    public async Task CreateForNewUserAsync_NewName_CreatesUserWithHiddenRandomPassword()
+    {
+        var newUser = SetupCreatableUser("newfriend");
+        using var service = CreateService();
+
+        var link = await service.CreateForNewUserAsync(" newfriend ", 7);
+
+        _userManager.Verify(m => m.CreateUserAsync("newfriend"), Times.Once);
+        _userManager.Verify(m => m.ChangePassword(newUser.Id, It.Is<string>(p => p.Length >= 40)), Times.Once);
+        Assert.Equal("newfriend", await service.GetUsernameAsync(link.Token));
+    }
+
+    [Fact]
+    public async Task CreateForNewUserAsync_InvalidExpiry_CreatesNoUser()
+    {
+        using var service = CreateService();
+
+        var e = await Assert.ThrowsAsync<PasswordLinkException>(() => service.CreateForNewUserAsync("newfriend", 0));
+
+        Assert.Equal(PasswordLinkError.InvalidExpiry, e.Error);
+        _userManager.Verify(m => m.CreateUserAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateForNewUserAsync_NameTaken_ThrowsUserAlreadyExists()
+    {
+        _userManager.Setup(m => m.GetUserByName("friend")).Returns(_user);
+        using var service = CreateService();
+
+        var e = await Assert.ThrowsAsync<PasswordLinkException>(() => service.CreateForNewUserAsync("friend", 7));
+
+        Assert.Equal(PasswordLinkError.UserAlreadyExists, e.Error);
+        _userManager.Verify(m => m.CreateUserAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateForNewUserAsync_SettingPasswordFails_DeletesUserAgain()
+    {
+        var newUser = SetupCreatableUser("newfriend");
+        _userManager.Setup(m => m.ChangePassword(newUser.Id, It.IsAny<string>()))
+            .ThrowsAsync(new InvalidOperationException("database unavailable"));
+        using var service = CreateService();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateForNewUserAsync("newfriend", 7));
+
+        _userManager.Verify(m => m.DeleteUserAsync(newUser.Id), Times.Once);
+    }
+
+    private User SetupCreatableUser(string name)
+    {
+        var user = new User(name, PasswordLinkService.DefaultAuthenticationProvider, "default");
+        _userManager.Setup(m => m.CreateUserAsync(name)).ReturnsAsync(user);
+        _userManager.Setup(m => m.GetUserById(user.Id)).Returns(user);
+        return user;
+    }
+
     private PasswordLinkService CreateService(PluginConfiguration? configuration = null)
     {
         var config = configuration ?? new PluginConfiguration();

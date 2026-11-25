@@ -18,7 +18,9 @@ Requires Jellyfin 12.1 or newer.
 
 ## Use
 
-Open **Password Link** in the dashboard menu, pick a user and create a link. Send the link to that user. The page shows their username and asks for a new password. The public page is available in English and Dutch.
+Open **Password Link** in the dashboard menu, pick a user and create a link. Send the link to that user.
+
+Type a name that does not exist yet to create the user and the link in one go. The new user gets Jellyfin's default permissions and a random password nobody knows, so the account cannot be used until the link is. The page shows their username and asks for a new password. The public page is available in English and Dutch.
 
 Creating a new link for a user replaces their previous one. Active links can be revoked from the same page. The default validity (7 days) and the minimum password length (8) are under **Settings**.
 
