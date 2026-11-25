@@ -43,10 +43,15 @@ const text = STRINGS[language];
 const $ = (id) => document.getElementById(id);
 const format = (template, values) => template.replace(/\{(\w+)\}/g, (_, key) => values[key]);
 
-// Read the token from the fragment (never sent to the server or written to access logs),
-// then drop it from the address bar so it does not end up in history or bookmarks.
-const token = decodeURIComponent(location.hash.slice(1));
-history.replaceState(null, '', location.pathname + location.search);
+// The token lives in the fragment, so it is not in any request URL or access log. Drop it from
+// the address bar to keep it out of history and bookmarks, and keep it in this tab's
+// sessionStorage so a reload still works until the password is saved.
+const TOKEN_KEY = 'password-link-token';
+if (location.hash.length > 1) {
+    sessionStorage.setItem(TOKEN_KEY, decodeURIComponent(location.hash.slice(1)));
+    history.replaceState(null, '', location.pathname + location.search);
+}
+const token = sessionStorage.getItem(TOKEN_KEY);
 
 function show(view) {
     for (const id of ['loading', 'form-view', 'done-view', 'invalid-view']) {
@@ -125,6 +130,7 @@ async function redeem(password, minLength) {
         if (response.status === 404) return showProblem('invalidTitle', 'invalidText');
         if (!response.ok) throw new Error(`Redeem failed with HTTP ${response.status}`);
 
+        sessionStorage.removeItem(TOKEN_KEY);
         show('done-view');
     } catch (e) {
         console.error(e);
