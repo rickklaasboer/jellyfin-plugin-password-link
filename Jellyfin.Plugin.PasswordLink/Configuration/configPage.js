@@ -84,7 +84,7 @@ async function createLink(root) {
         ExpiresInDays: Number(root.querySelector('#pl-days').value),
     });
 
-    // The token goes in the fragment so it never reaches a server or proxy access log.
+    // The token goes in the fragment, so it is not part of any request URL or proxy access log.
     root.querySelector('#pl-url').value = `${serverAddress()}/PasswordLink/Set#${link.Token}`;
     root.querySelector('#pl-result-label').textContent = `Link for ${select.selectedOptions[0].text}`;
     root.querySelector('#pl-result-expiry').textContent = `Valid until ${dateFormat.format(new Date(link.ExpiresAt))}.`;
