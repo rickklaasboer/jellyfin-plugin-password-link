@@ -47,7 +47,8 @@ public sealed class PasswordLinkService : IDisposable
         _links = store.Load();
     }
 
-    public int MinPasswordLength => _getConfiguration().MinPasswordLength;
+    // Never below 1: Jellyfin stores an empty password as "no password".
+    public int MinPasswordLength => Math.Max(1, _getConfiguration().MinPasswordLength);
 
     public async Task<CreatedPasswordLink> CreateAsync(Guid userId, int? expiresInDays)
     {

@@ -80,6 +80,18 @@ public sealed class PasswordLinkServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task RedeemAsync_EmptyPasswordWithMinimumLengthZero_ThrowsPasswordTooShort()
+    {
+        using var service = CreateService(new PluginConfiguration { MinPasswordLength = 0 });
+        var link = await service.CreateAsync(_user.Id, 7);
+
+        var e = await Assert.ThrowsAsync<PasswordLinkException>(() => service.RedeemAsync(link.Token, string.Empty));
+
+        Assert.Equal(PasswordLinkError.PasswordTooShort, e.Error);
+        _userManager.Verify(m => m.ChangePassword(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
     public async Task CreateAsync_ServiceRestarted_LinkStillUsable()
     {
         CreatedPasswordLink link;
