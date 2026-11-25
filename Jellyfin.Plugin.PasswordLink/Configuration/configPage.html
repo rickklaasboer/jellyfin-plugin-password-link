@@ -1,0 +1,79 @@
+<div id="PasswordLinkConfigPage" data-role="page" class="page type-interior pluginConfigurationPage">
+    <div data-role="content">
+        <div class="content-primary" id="password-link-root">
+            <h2 class="sectionTitle">Password Link</h2>
+
+            <form id="pl-create-form" class="pl-section">
+                <h3>New link</h3>
+                <div class="pl-row">
+                    <label class="pl-field">
+                        <span>User</span>
+                        <select id="pl-user" class="emby-select-withcolor emby-select" required></select>
+                    </label>
+                    <label class="pl-field pl-days">
+                        <span>Valid for (days)</span>
+                        <input id="pl-days" class="emby-input" type="number" min="1" max="365" required>
+                    </label>
+                </div>
+                <button type="submit" class="raised button-submit emby-button pl-button">Create link</button>
+
+                <div id="pl-result" class="pl-result" hidden>
+                    <label class="pl-field">
+                        <span id="pl-result-label"></span>
+                        <span class="pl-copy">
+                            <input id="pl-url" class="emby-input" type="text" readonly>
+                            <button type="button" id="pl-copy" class="raised emby-button pl-button">Copy</button>
+                        </span>
+                    </label>
+                    <p id="pl-result-expiry" class="pl-muted"></p>
+                </div>
+            </form>
+
+            <section class="pl-section">
+                <h3>Active links</h3>
+                <table class="pl-table">
+                    <thead>
+                        <tr><th>User</th><th>Created</th><th>Valid until</th><th></th></tr>
+                    </thead>
+                    <tbody id="pl-links"></tbody>
+                </table>
+                <p id="pl-empty" class="pl-muted" hidden>No active links.</p>
+            </section>
+
+            <form id="pl-settings-form" class="pl-section">
+                <h3>Settings</h3>
+                <div class="pl-row">
+                    <label class="pl-field pl-days">
+                        <span>Default validity (days)</span>
+                        <input id="pl-default-days" class="emby-input" type="number" min="1" max="365" required>
+                    </label>
+                    <label class="pl-field pl-days">
+                        <span>Minimum password length</span>
+                        <input id="pl-min-length" class="emby-input" type="number" min="1" max="256" required>
+                    </label>
+                </div>
+                <button type="submit" class="raised button-submit emby-button pl-button">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        #password-link-root .pl-section { margin: 2.5em 0; max-width: 54em; }
+        #password-link-root h3 { margin: 0 0 1em; }
+        #password-link-root .pl-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1em 1.5em; max-width: 36em; }
+        #password-link-root .pl-field { display: flex; flex-direction: column; gap: 0.4em; flex: 1 1 16em; margin-bottom: 1.2em; }
+        #password-link-root .pl-days { flex: 0 1 15em; }
+        #password-link-root .pl-button { width: auto; margin: 0; padding-left: 1.5em; padding-right: 1.5em; }
+        #password-link-root .pl-result { margin-top: 1.8em; }
+        #password-link-root .pl-copy { display: flex; gap: 0.75em; align-items: stretch; }
+        #password-link-root .pl-copy input { flex: 1; min-width: 0; }
+        #password-link-root .pl-muted { opacity: 0.7; margin: 0; }
+        #password-link-root .pl-table { width: 100%; border-collapse: collapse; margin-bottom: 1em; }
+        #password-link-root .pl-table th { text-align: left; font-weight: 600; padding: 0.5em 1em 0.5em 0; border-bottom: 1px solid rgba(255, 255, 255, 0.15); }
+        #password-link-root .pl-table td { padding: 0.6em 1em 0.6em 0; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
+        #password-link-root .pl-table td:last-child { text-align: right; padding-right: 0; }
+        #password-link-root .pl-table[hidden] { display: none; }
+        #password-link-root button { cursor: pointer; }
+    </style>
+    <script type="module" src="configurationpage?name=PasswordLinkJs"></script>
+</div>

@@ -1,0 +1,11 @@
+[
+  {
+    "guid": "2ae0d2b9-67aa-486d-a157-3d0464f6be86",
+    "name": "Password Link",
+    "overview": "Send users a one-time link to set their own password.",
+    "description": "Create a link per user in the dashboard. The user opens it, chooses a password and signs in with it in any Jellyfin app. Links are single use and expire.",
+    "owner": "rickklaasboer",
+    "category": "Administration",
+    "versions": []
+  }
+]

@@ -1,0 +1,58 @@
+name: Release
+
+# Push a tag like v1.0.0.0 to build the plugin, attach the zip to a GitHub release
+# and add the version to manifest.json on main.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  TARGET_ABI: '12.1.0.0'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Test
+        run: dotnet test --configuration Release
+
+      - name: Build
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          dotnet publish Jellyfin.Plugin.PasswordLink --configuration Release --output publish \
+            -p:Version="$VERSION" -p:AssemblyVersion="$VERSION" -p:FileVersion="$VERSION"
+          ZIP="password-link_${VERSION}.zip"
+          (cd publish && zip "../$ZIP" Jellyfin.Plugin.PasswordLink.dll)
+          echo "ZIP=$ZIP" >> "$GITHUB_ENV"
+          echo "CHECKSUM=$(md5sum "$ZIP" | cut -d' ' -f1)" >> "$GITHUB_ENV"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" "$ZIP" --title "$GITHUB_REF_NAME" --generate-notes
+
+      - name: Update manifest
+        run: |
+          python3 .github/scripts/update_manifest.py manifest.json \
+            --version "$VERSION" \
+            --target-abi "$TARGET_ABI" \
+            --source-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${ZIP}" \
+            --checksum "$CHECKSUM" \
+            --changelog "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${GITHUB_REF_NAME}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git commit -m "chore(release): add ${VERSION} to manifest"
+          git push origin main
